@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     pMOG = new BackgroundSubtractorMOG();
     pMOG2 = new BackgroundSubtractorMOG2();
 
-    processImages("E:/IN52/imgD/W_3700R.tif");
+    processImages("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif");
     destroyAllWindows();
     return EXIT_SUCCESS;
 }
@@ -54,8 +54,14 @@ void processImages(char* fistFrameFilename) {
 
         IplImage* mask = new IplImage(fgMaskMOG2);
         //Traitement de l'image pour eliminer des parasites
+        //si on erode avant de dilate, on voit surtout le feuillage des arbres et la voiture disparait
+
         cvDilate(mask, mask, kernel, 2);
         cvErode(mask, mask, kernel, 2);
+
+        //avec un erode de 10 on supprime quasiment entièrement la voiture et seul le ciel et les arbres apparaissent
+        //peut-être utilisable pour connaitre position des parasites et refaire une soustraction
+        //cvErode(mask, mask, kernel, 10);
 
         //Recuperation du prefix et suffix du fichier
         size_t index = fn.find_last_of("/");
@@ -69,8 +75,6 @@ void processImages(char* fistFrameFilename) {
 
         rectangle(frame, cv::Point(10, 2), cv::Point(100,20),
             cv::Scalar(255,255,255), -1);
-        putText(frame, nextFrameNumberString.c_str(), cv::Point(15, 15),
-            FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(0,0,0));
 
         //Affichage du resultat
         imshow("Frame", frame);
