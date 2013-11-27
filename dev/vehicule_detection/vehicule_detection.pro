@@ -36,4 +36,11 @@ LIBS += -LE:\OpenCV\opencv_bin\install\x64\mingw\bin \
 #include "opencv2/video/background_segm.hpp"
 #include "opencv2/video/video.hpp"
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    objectFinder.cpp \
+    histogram.cpp
+
+HEADERS += \
+    objectFinder.h \
+    histogram.h \
+    colorhistogram.h
