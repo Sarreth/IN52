@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <ctype.h>
 
 #include "opencv/highgui.h"
 #include "opencv/cv.h"
@@ -19,7 +20,18 @@
 using namespace cv;
 using namespace std;
 
-Mat frame;
+/* Pour le camShift */
+Mat image;
+bool backprojMode = false;
+bool selectObject = false;
+int trackObject = 0;
+bool showHist = true;
+Point origin;
+Rect selection;
+int vmin = 10, vmax = 256, smin = 30;
+
+/*---------------------*/
+
 Mat fgMaskMOG;
 Mat fgMaskMOG2;
 Ptr<BackgroundSubtractorMOG> pMOG;
@@ -30,6 +42,8 @@ int keyboard;
 void processVideo(char* videoFilename);
 void processImages(char* firstFrameFilename);
 int testCamShift();
+static void onMouse( int event, int x, int y, int, void* );
+static void help();
 
 int main(int argc, char* argv[])
 {
@@ -47,109 +61,213 @@ int main(int argc, char* argv[])
     return EXIT_SUCCESS;
 }
 
+
+
+
+static void onMouse( int event, int x, int y, int, void* )
+{
+    if( selectObject )
+    {
+        selection.x = MIN(x, origin.x);
+        selection.y = MIN(y, origin.y);
+        selection.width = std::abs(x - origin.x);
+        selection.height = std::abs(y - origin.y);
+
+        selection &= Rect(0, 0, image.cols, image.rows);
+    }
+
+    switch( event )
+    {
+    case CV_EVENT_LBUTTONDOWN:
+        origin = Point(x,y);
+        selection = Rect(x,y,0,0);
+        selectObject = true;
+        break;
+    case CV_EVENT_LBUTTONUP:
+        selectObject = false;
+        if( selection.width > 0 && selection.height > 0 )
+            trackObject = -1;
+        break;
+    }
+}
+
+static void help()
+{
+    cout << "\nThis is a demo that shows mean-shift based tracking\n"
+            "You select a color objects such as your face and it tracks it.\n"
+            "This reads from video camera (0 by default, or the camera number the user enters\n"
+            "Usage: \n"
+            "   ./camshiftdemo [camera number]\n";
+
+    cout << "\n\nHot keys: \n"
+            "\tESC - quit the program\n"
+            "\tc - stop the tracking\n"
+            "\tb - switch to/from backprojection view\n"
+            "\th - show/hide object histogram\n"
+            "\tp - pause video\n"
+            "To initialize tracking, select the object with mouse\n";
+}
+
+const char* keys =
+{
+    "{1|  | 0 | camera number}"
+};
+
 int testCamShift()
 {
-     // Read reference image
-     Mat image= imread("E:/DropBox/UTBM/IN52/ref.tif");
-     if (!image.data)
-         return 0;
+    Rect trackWindow;
+    int hsize = 16;
+    float hranges[] = {0,180};
+    const float* phranges = hranges;
 
-     // Define ROI
-     Mat imageROI= image(Rect(110,260,35,40));
-     rectangle(image, Rect(110,260,35,40),Scalar(0,0,255));
+    namedWindow( "Histogram", 0 );
+    namedWindow( "CamShift Demo", 0 );
+    setMouseCallback( "CamShift Demo", onMouse, 0 );
+    createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
+    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
+    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
 
-     // Display image
-     namedWindow("Image");
-     imshow("Image",image);
+    Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
+    bool paused = false;
 
-     // Get the Hue histogram
-     int minSat=65;
-     ColorHistogram hc;
-     //MatND colorhist= hc.getHueHistogram(imageROI,minSat);
 
-     ObjectFinder finder;
-     //finder.setHistogram(colorhist);
-     finder.setThreshold(0.2f);
+    string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
+    int count=3700;
+    frame = imread(fn);
 
-     // Convert to HSV space
-     Mat hsv;
-     cvtColor(image, hsv, CV_BGR2HSV);
+    size_t index = fn.find_last_of("/");
+    if(index == string::npos)
+        index = fn.find_last_of("\\");
 
-     // Split the image
-     vector<Mat> v;
-     split(hsv,v);
+    size_t index2 = fn.find_last_of(".");
+    string prefix = fn.substr(0,index+1);
+    string suffix = fn.substr(index2);
+    stringstream ss;
+    ss << count;
+    string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
 
-     // Eliminate pixels with low saturation
-     threshold(v[1],v[1],minSat,255,THRESH_BINARY);
-     namedWindow("Saturation");
-     imshow("Saturation",v[1]);
+    cout << nextFrameFilename << endl;
 
-     // Get back-projection of hue histogram
-     int ch[1]={0};
-     Mat result= finder.find(hsv,0.0f,180.0f,ch,1);
 
-     namedWindow("Result Hue");
-     imshow("Result Hue",result);
+    for(;;)
+    {
+        if( !paused )
+        {
+            frame = imread(nextFrameFilename);
+            count++;
+            stringstream ss;
+            ss << count;
+            nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
 
-     bitwise_and(result,v[1],result);
-     namedWindow("Result Hue and");
-     imshow("Result Hue and",result);
+            cout << nextFrameFilename << endl;
 
-     // Second image
-     image= imread("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif");
+        }
 
-     // Display image
-     namedWindow("Image 2");
-     imshow("Image 2",image);
+        frame.copyTo(image);
 
-     // Convert to HSV space
-     cvtColor(image, hsv, CV_BGR2HSV);
+        if( !paused )
+        {
+            cvtColor(image, hsv, CV_BGR2HSV);
 
-     // Split the image
-     split(hsv,v);
+            if( trackObject )
+            {
+                int _vmin = vmin, _vmax = vmax;
 
-     // Eliminate pixels with low saturation
-     threshold(v[1],v[1],minSat,255,THRESH_BINARY);
-     namedWindow("Saturation");
-     imshow("Saturation",v[1]);
+                inRange(hsv, Scalar(0, smin, MIN(_vmin,_vmax)),
+                        Scalar(180, 256, MAX(_vmin, _vmax)), mask);
+                int ch[] = {0, 0};
+                hue.create(hsv.size(), hsv.depth());
+                mixChannels(&hsv, 1, &hue, 1, ch, 1);
 
-     // Get back-projection of hue histogram
-     result= finder.find(hsv,0.0f,180.0f,ch,1);
+                if( trackObject < 0 )
+                {
+                    Mat roi(hue, selection), maskroi(mask, selection);
+                    calcHist(&roi, 1, 0, maskroi, hist, 1, &hsize, &phranges);
+                    normalize(hist, hist, 0, 255, CV_MINMAX);
 
-     namedWindow("Result Hue");
-     imshow("Result Hue",result);
+                    trackWindow = selection;
+                    trackObject = 1;
 
-     // Eliminate low stauration pixels
-     bitwise_and(result,v[1],result);
-     namedWindow("Result Hue and");
-     imshow("Result Hue and",result);
+                    histimg = Scalar::all(0);
+                    int binW = histimg.cols / hsize;
+                    Mat buf(1, hsize, CV_8UC3);
+                    for( int i = 0; i < hsize; i++ )
+                        buf.at<Vec3b>(i) = Vec3b(saturate_cast<uchar>(i*180./hsize), 255, 255);
+                    cvtColor(buf, buf, CV_HSV2BGR);
 
-     // Get back-projection of hue histogram
-     finder.setThreshold(-1.0f);
-     result= finder.find(hsv,0.0f,180.0f,ch,1);
-     bitwise_and(result,v[1],result);
-     namedWindow("Result Hue and raw");
-     imshow("Result Hue and raw",result);
+                    for( int i = 0; i < hsize; i++ )
+                    {
+                        int val = saturate_cast<int>(hist.at<float>(i)*histimg.rows/255);
+                        rectangle( histimg, Point(i*binW,histimg.rows),
+                                   Point((i+1)*binW,histimg.rows - val),
+                                   Scalar(buf.at<Vec3b>(i)), -1, 8 );
+                    }
+                }
 
-     Rect rect(110,260,35,40);
-     rectangle(image, rect, Scalar(0,0,255));
+                calcBackProject(&hue, 1, 0, hist, backproj, &phranges);
+                backproj &= mask;
+                RotatedRect trackBox = CamShift(backproj, trackWindow,
+                                    TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1 ));
+                if( trackWindow.area() <= 1 )
+                {
+                    int cols = backproj.cols, rows = backproj.rows, r = (MIN(cols, rows) + 5)/6;
+                    trackWindow = Rect(trackWindow.x - r, trackWindow.y - r,
+                                       trackWindow.x + r, trackWindow.y + r) &
+                                  Rect(0, 0, cols, rows);
+                }
 
-     TermCriteria criteria(TermCriteria::MAX_ITER,10,0.01);
- //  cout << "meanshift= " << meanShift(result,rect,criteria) << endl;
+                if( backprojMode )
+                    cvtColor( backproj, image, CV_GRAY2BGR );
+                ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
+            }
+        }
+        else if( trackObject < 0 )
+            paused = false;
 
-     rectangle(image, rect, Scalar(0,255,0));
+        if( selectObject && selection.width > 0 && selection.height > 0 )
+        {
+            Mat roi(image, selection);
+            bitwise_not(roi, roi);
+        }
 
-     // Display image
-     namedWindow("Image 2 result");
-     imshow("Image 2 result",image);
+        imshow( "CamShift Demo", image );
+        imshow( "Histogram", histimg );
 
-     waitKey();
-     return 0;
+        char c = (char)waitKey(10);
+        if( c == 27 )
+            break;
+        switch(c)
+        {
+        case 'b':
+            backprojMode = !backprojMode;
+            break;
+        case 'c':
+            trackObject = 0;
+            histimg = Scalar::all(0);
+            break;
+        case 'h':
+            showHist = !showHist;
+            if( !showHist )
+                destroyWindow( "Histogram" );
+            else
+                namedWindow( "Histogram", 1 );
+            break;
+        case 'p':
+            paused = !paused;
+            break;
+        default:
+            ;
+        }
+    }
+
+    return 0;
 }
+
 
 void processImages(char* fistFrameFilename) {
     //Traitement de l'image avec la méthode BgSubtractorMOG et bgSubtractorMOG2
     int count=3701;
+    Mat frame;
     frame = imread(fistFrameFilename);
 
     string fn(fistFrameFilename);
