@@ -226,8 +226,13 @@ int testCamShift()
     bool paused = true;
 
 
+<<<<<<< HEAD
 
     string fn(IMG_FILENAME) ;
+=======
+    string fn(IMG_FILENAME) ;
+    int count=3700;
+>>>>>>> 993b168d42583435d09f09671d72f9c93eff921c
     frame = imread(fn);
 
     int count=3700;
