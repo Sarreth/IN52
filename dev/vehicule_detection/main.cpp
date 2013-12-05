@@ -17,7 +17,8 @@
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
-#define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
+#define IMG_FILENAME "E:/DropBox/UTBM/IN52/imgD/W_3700R.tif"
+#define REF_FILENAME "E:/DropBox/UTBM/IN52/ref.tif"
 
 using namespace cv;
 using namespace std;
@@ -36,8 +37,7 @@ int vmin = 100, vmax = 256, smin = 75;
 
 /* Matching Methode */
 Mat img; Mat templ; Mat result;
-char* image_window = "Source Image";
-//char* result_window = "Result window";
+string image_window = "Source Image";
 
 int match_method=3;
 int max_Trackbar = 5;
@@ -70,25 +70,20 @@ int main()
 //    histogramEqua();
 //    testCamShift();
 
-//    processImages("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif");
+//    processImages("IMG_FILENAME");
     destroyAllWindows();
     return EXIT_SUCCESS;
 }
+
 int templateMatching()
 {
-
-    string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
+    string fn("IMG_FILENAME") ;
 
     img = imread( fn, 1 );
-    templ = imread("E:/DropBox/UTBM/IN52/ref.tif", 1 );
+    templ = imread(REF_FILENAME, 1 );
 
     /// Create windows
     namedWindow( image_window, CV_WINDOW_AUTOSIZE );
-//    namedWindow( result_window, CV_WINDOW_AUTOSIZE );
-
-    /// Create Trackbar
-//    char* trackbar_label = "Method: \n 0: SQDIFF \n 1: SQDIFF NORMED \n 2: TM CCORR \n 3: TM CCORR NORMED \n 4: TM COEFF \n 5: TM COEFF NORMED";
-//    createTrackbar( trackbar_label, image_window, &match_method, max_Trackbar, MatchingMethod );
 
     int count=3700;
     size_t index = fn.find_last_of("/");
@@ -148,10 +143,8 @@ void MatchingMethod( int, void* )
 
   /// Show me what you got
   rectangle( img_display, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar::all(0), 2, 8, 0 );
-//  rectangle( result, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar::all(0), 2, 8, 0 );
 
   imshow( image_window, img_display );
-//  imshow( result_window, result );
 
   return;
 }
@@ -160,8 +153,8 @@ int histogramEqua()
 {
     Mat src, dst;
 
-    char* source_window = "Source image";
-    char* equalized_window = "Equalized Image";
+    string source_window = "Source image";
+    string equalized_window = "Equalized Image";
 
     src = imread( "E:/DropBox/UTBM/IN52/imgD/W_3899R.tif", 1 );
 
@@ -215,12 +208,8 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-//    namedWindow( "Histogram", 0 );
     namedWindow( "CamShift Demo", 0 );
     setMouseCallback( "CamShift Demo", onMouse, 0 );
-//    createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
-//    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
-//    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
     bool paused = true;
@@ -324,7 +313,6 @@ int testCamShift()
         }
 
         imshow( "CamShift Demo", image );
-//        imshow( "Histogram", histimg );
 
         char c = (char)waitKey(10);
         if( c == 27 )
@@ -338,13 +326,6 @@ int testCamShift()
             trackObject = 0;
             histimg = Scalar::all(0);
             break;
-//        case 'h':
-//            showHist = !showHist;
-//            if( !showHist )
-//                destroyWindow( "Histogram" );
-//            else
-//                namedWindow( "Histogram", 1 );
-//            break;
         case 'p':
             paused = !paused;
             break;
