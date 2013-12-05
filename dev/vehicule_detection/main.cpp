@@ -13,11 +13,16 @@
 #include "opencv2/video/background_segm.hpp"
 #include "opencv2/video/video.hpp"
 
+
+#include <fstream>
+
+
 #include "histogram.h"
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
 #define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
+#define SELECTION_FILE "/home/audric/IN52/selection.txt"
 
 
 using namespace cv;
@@ -44,16 +49,20 @@ int keyboard;
 
 void processImages(char* firstFrameFilename);
 int testCamShift();
-static void onMouse( int event, int x, int y, int, void* );
+Rect getTrackingZoneFromFile(char* filename);
+
+
+
+
+
 
 int main()
 {
-    //Creation des fenetres d'affichage de resultats
-//    namedWindow("Frame");
-//    namedWindow("FG Mask MOG");
-
     pMOG = new BackgroundSubtractorMOG();
     pMOG2 = new BackgroundSubtractorMOG2();
+
+    selection = getTrackingZoneFromFile(SELECTION_FILE);
+    cout << "tracking from: " << selection << endl << endl;
 
     testCamShift();
 
@@ -65,32 +74,6 @@ int main()
 
 
 
-static void onMouse( int event, int x, int y, int, void* )
-{
-    if( selectObject )
-    {
-        selection.x = MIN(x, origin.x);
-        selection.y = MIN(y, origin.y);
-        selection.width = std::abs(x - origin.x);
-        selection.height = std::abs(y - origin.y);
-
-        selection &= Rect(0, 0, image.cols, image.rows);
-    }
-
-    switch( event )
-    {
-    case CV_EVENT_LBUTTONDOWN:
-        origin = Point(x,y);
-        selection = Rect(x,y,0,0);
-        selectObject = true;
-        break;
-    case CV_EVENT_LBUTTONUP:
-        selectObject = false;
-        if( selection.width > 0 && selection.height > 0 )
-            trackObject = -1;
-        break;
-    }
-}
 
 
 int testCamShift()
@@ -100,15 +83,13 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-//    namedWindow( "Histogram", 0 );
     namedWindow( "CamShift Demo", 0 );
-    setMouseCallback( "CamShift Demo", onMouse, 0 );
-//    createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
-//    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
-//    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
+    /*createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
+    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
+    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );*/
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
-    bool paused = true;
+    bool paused = false;
 
 
     string fn(IMG_FILENAME) ;
@@ -129,16 +110,21 @@ int testCamShift()
 
     for(;;)
     {
+
         if( !paused )
         {
             frame = imread(nextFrameFilename);
-            if(frame.empty())
-                break;
             count++;
+            if(frame.empty()) {
+                count = 3700;
+            }
+
             stringstream ss;
             ss << count;
             nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
-
+            if(count == 3700) {
+                frame = imread(nextFrameFilename);
+            }
 
         }
 
@@ -209,7 +195,6 @@ int testCamShift()
         }
 
         imshow( "CamShift Demo", image );
-//        imshow( "Histogram", histimg );
 
         char c = (char)waitKey(10);
         if( c == 27 )
@@ -223,13 +208,6 @@ int testCamShift()
             trackObject = 0;
             histimg = Scalar::all(0);
             break;
-//        case 'h':
-//            showHist = !showHist;
-//            if( !showHist )
-//                destroyWindow( "Histogram" );
-//            else
-//                namedWindow( "Histogram", 1 );
-//            break;
         case 'p':
             paused = !paused;
             break;
@@ -304,4 +282,24 @@ void processImages(char* fistFrameFilename) {
         }
         fn.assign(nextFrameFilename);
     }
+}
+
+
+/**
+ * @brief getTrackingZoneFromFile Format du fichier : x y width height sans saut de ligne
+ * @param filename
+ * @return
+ */
+Rect getTrackingZoneFromFile(char* filename) {
+
+    std::ifstream infile(filename);
+    int x, y, w, h;
+    infile >> w >> h >> x >> y;
+    Rect zone;
+    zone.x = x;
+    zone.y = y;
+    zone.width = w;
+    zone.height = h;
+    trackObject = -1;
+    return zone;
 }
