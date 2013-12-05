@@ -29,13 +29,6 @@ LIBS += -LE:\OpenCV\opencv_bin\install\x64\mingw\bin \
         -llibopencv_legacy247d \
         -llibopencv_video247d
 
-#include "opencv/highgui.h"
-#include "opencv/cv.h"
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/video/background_segm.hpp"
-#include "opencv2/video/video.hpp"
-
 SOURCES += main.cpp \
     objectFinder.cpp \
     histogram.cpp

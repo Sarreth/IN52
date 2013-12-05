@@ -32,6 +32,15 @@ int vmin = 100, vmax = 256, smin = 75;
 
 /*---------------------*/
 
+/* Matching Methode */
+Mat img; Mat templ; Mat result;
+char* image_window = "Source Image";
+//char* result_window = "Result window";
+
+int match_method=3;
+int max_Trackbar = 5;
+/*---------------------*/
+
 Mat fgMaskMOG;
 Mat fgMaskMOG2;
 Ptr<BackgroundSubtractorMOG> pMOG;
@@ -42,6 +51,9 @@ int keyboard;
 void processImages(char* firstFrameFilename);
 int testCamShift();
 static void onMouse( int event, int x, int y, int, void* );
+int histogramEqua();
+void MatchingMethod(int, void*);
+int templateMatching();
 
 int main()
 {
@@ -52,15 +64,119 @@ int main()
     pMOG = new BackgroundSubtractorMOG();
     pMOG2 = new BackgroundSubtractorMOG2();
 
-    testCamShift();
+    templateMatching();
+//    histogramEqua();
+//    testCamShift();
 
 //    processImages("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif");
     destroyAllWindows();
     return EXIT_SUCCESS;
 }
+int templateMatching()
+{
 
+    string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
 
+    img = imread( fn, 1 );
+    templ = imread("E:/DropBox/UTBM/IN52/ref.tif", 1 );
 
+    /// Create windows
+    namedWindow( image_window, CV_WINDOW_AUTOSIZE );
+//    namedWindow( result_window, CV_WINDOW_AUTOSIZE );
+
+    /// Create Trackbar
+//    char* trackbar_label = "Method: \n 0: SQDIFF \n 1: SQDIFF NORMED \n 2: TM CCORR \n 3: TM CCORR NORMED \n 4: TM COEFF \n 5: TM COEFF NORMED";
+//    createTrackbar( trackbar_label, image_window, &match_method, max_Trackbar, MatchingMethod );
+
+    int count=3700;
+    size_t index = fn.find_last_of("/");
+    if(index == string::npos)
+        index = fn.find_last_of("\\");
+
+    size_t index2 = fn.find_last_of(".");
+    string prefix = fn.substr(0,index+1);
+    string suffix = fn.substr(index2);
+    stringstream ss;
+    ss << count;
+    string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
+
+    for(;;)
+    {
+        MatchingMethod(0,0);
+        img = imread(nextFrameFilename);
+        if(img.empty())
+            break;
+        count++;
+        stringstream ss;
+        ss << count;
+        nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
+        waitKey(10);
+    }
+    waitKey(0);
+    return 0;
+}
+
+void MatchingMethod( int, void* )
+{
+  /// Source image to display
+  Mat img_display;
+  img.copyTo( img_display );
+
+  /// Create the result matrix
+  int result_cols =  img.cols - templ.cols + 1;
+  int result_rows = img.rows - templ.rows + 1;
+
+  result.create( result_cols, result_rows, CV_32FC1 );
+
+  /// Do the Matching and Normalize
+  matchTemplate( img, templ, result, match_method );
+  normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+
+  /// Localizing the best match with minMaxLoc
+  double minVal; double maxVal; Point minLoc; Point maxLoc;
+  Point matchLoc;
+
+  minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+
+  /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+  if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+    { matchLoc = minLoc; }
+  else
+    { matchLoc = maxLoc; }
+
+  /// Show me what you got
+  rectangle( img_display, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar::all(0), 2, 8, 0 );
+//  rectangle( result, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar::all(0), 2, 8, 0 );
+
+  imshow( image_window, img_display );
+//  imshow( result_window, result );
+
+  return;
+}
+
+int histogramEqua()
+{
+    Mat src, dst;
+
+    char* source_window = "Source image";
+    char* equalized_window = "Equalized Image";
+
+    src = imread( "E:/DropBox/UTBM/IN52/imgD/W_3899R.tif", 1 );
+
+    cvtColor( src, src, CV_BGR2GRAY );
+
+    equalizeHist( src, dst );
+
+    namedWindow( source_window, CV_WINDOW_AUTOSIZE );
+    namedWindow( equalized_window, CV_WINDOW_AUTOSIZE );
+
+    imshow( source_window, src );
+    imshow( equalized_window, dst );
+
+    waitKey(0);
+
+    return 0;
+}
 
 static void onMouse( int event, int x, int y, int, void* )
 {
@@ -109,9 +225,9 @@ int testCamShift()
 
 
     string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
-    int count=3700;
     frame = imread(fn);
 
+    int count=3700;
     size_t index = fn.find_last_of("/");
     if(index == string::npos)
         index = fn.find_last_of("\\");
