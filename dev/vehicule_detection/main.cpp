@@ -225,7 +225,7 @@ int testCamShift()
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
     bool paused = true;
 
-
+    string fn =  IMG_FILENAME;
 
     frame = imread(fn);
 
