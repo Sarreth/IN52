@@ -17,6 +17,8 @@
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
+#define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
+
 using namespace cv;
 using namespace std;
 
@@ -224,7 +226,8 @@ int testCamShift()
     bool paused = true;
 
 
-    string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
+
+    string fn(IMG_FILENAME) ;
     frame = imread(fn);
 
     int count=3700;
