@@ -3,6 +3,10 @@
 #################
 imgD/
 Cours/
+dev/vehicule_detection/*.pro
+imageInfo.txt
+lms1.txt
+sites.txt
 
 #################
 ## Eclipse

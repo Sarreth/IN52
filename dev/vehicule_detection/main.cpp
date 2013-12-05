@@ -28,7 +28,7 @@ int trackObject = 0;
 bool showHist = true;
 Point origin;
 Rect selection;
-int vmin = 10, vmax = 256, smin = 30;
+int vmin = 100, vmax = 256, smin = 75;
 
 /*---------------------*/
 
@@ -39,11 +39,9 @@ Ptr<BackgroundSubtractorMOG2> pMOG2;
 IplConvKernel *kernel;
 int keyboard;
 
-void processVideo(char* videoFilename);
 void processImages(char* firstFrameFilename);
 int testCamShift();
 static void onMouse( int event, int x, int y, int, void* );
-static void help();
 
 int main(int argc, char* argv[])
 {
@@ -91,27 +89,6 @@ static void onMouse( int event, int x, int y, int, void* )
     }
 }
 
-static void help()
-{
-    cout << "\nThis is a demo that shows mean-shift based tracking\n"
-            "You select a color objects such as your face and it tracks it.\n"
-            "This reads from video camera (0 by default, or the camera number the user enters\n"
-            "Usage: \n"
-            "   ./camshiftdemo [camera number]\n";
-
-    cout << "\n\nHot keys: \n"
-            "\tESC - quit the program\n"
-            "\tc - stop the tracking\n"
-            "\tb - switch to/from backprojection view\n"
-            "\th - show/hide object histogram\n"
-            "\tp - pause video\n"
-            "To initialize tracking, select the object with mouse\n";
-}
-
-const char* keys =
-{
-    "{1|  | 0 | camera number}"
-};
 
 int testCamShift()
 {
@@ -146,14 +123,14 @@ int testCamShift()
     ss << count;
     string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
 
-    cout << nextFrameFilename << endl;
-
 
     for(;;)
     {
         if( !paused )
         {
             frame = imread(nextFrameFilename);
+            if(frame.empty())
+                break;
             count++;
             stringstream ss;
             ss << count;
@@ -173,8 +150,7 @@ int testCamShift()
             {
                 int _vmin = vmin, _vmax = vmax;
 
-                inRange(hsv, Scalar(0, smin, MIN(_vmin,_vmax)),
-                        Scalar(180, 256, MAX(_vmin, _vmax)), mask);
+                inRange(hsv, Scalar(0, smin, MIN(_vmin,_vmax)), Scalar(180, 256, MAX(_vmin, _vmax)), mask);
                 int ch[] = {0, 0};
                 hue.create(hsv.size(), hsv.depth());
                 mixChannels(&hsv, 1, &hue, 1, ch, 1);
