@@ -43,7 +43,7 @@ void processImages(char* firstFrameFilename);
 int testCamShift();
 static void onMouse( int event, int x, int y, int, void* );
 
-int main(int argc, char* argv[])
+int main()
 {
     //Creation des fenetres d'affichage de resultats
 //    namedWindow("Frame");
@@ -97,15 +97,15 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-    namedWindow( "Histogram", 0 );
+//    namedWindow( "Histogram", 0 );
     namedWindow( "CamShift Demo", 0 );
     setMouseCallback( "CamShift Demo", onMouse, 0 );
-    createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
-    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
-    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
+//    createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
+//    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
+//    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
-    bool paused = false;
+    bool paused = true;
 
 
     string fn("E:/DropBox/UTBM/IN52/imgD/W_3700R.tif") ;
@@ -136,7 +136,6 @@ int testCamShift()
             ss << count;
             nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
 
-            cout << nextFrameFilename << endl;
 
         }
 
@@ -207,7 +206,7 @@ int testCamShift()
         }
 
         imshow( "CamShift Demo", image );
-        imshow( "Histogram", histimg );
+//        imshow( "Histogram", histimg );
 
         char c = (char)waitKey(10);
         if( c == 27 )
@@ -221,13 +220,13 @@ int testCamShift()
             trackObject = 0;
             histimg = Scalar::all(0);
             break;
-        case 'h':
-            showHist = !showHist;
-            if( !showHist )
-                destroyWindow( "Histogram" );
-            else
-                namedWindow( "Histogram", 1 );
-            break;
+//        case 'h':
+//            showHist = !showHist;
+//            if( !showHist )
+//                destroyWindow( "Histogram" );
+//            else
+//                namedWindow( "Histogram", 1 );
+//            break;
         case 'p':
             paused = !paused;
             break;
