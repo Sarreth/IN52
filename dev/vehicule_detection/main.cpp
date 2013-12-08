@@ -24,7 +24,6 @@
 créer un nouveau fichier hpp s'appelant relative_data.hpp ET DECOCHER "add to source control : git"
 ensuite, copier coller vos define propre à vous uniquement (y en a 3 je crois) et avant de faire un commit
 ajouter relative_data.hpp à votre gitignore. Normalement, il le commitra pas, mais on aura chacun nos paramètres comme l faut
-
 */
 
 #define WINDOW_NAME "Projet d'IN54"
@@ -58,7 +57,7 @@ int max_Trackbar = 5;
 
 void processImages(char* firstFrameFilename);
 int testCamShift();
-Rect getTrackingZoneFromFile(char* filename);
+Rect getTrackingZoneFromFile(string filename);
 void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
 string getImageFilename(string prefix, int count, string suffix);
 
@@ -384,9 +383,9 @@ string getImageFilename(string prefix, int count, string suffix) {
  * @param filename
  * @return
  */
-Rect getTrackingZoneFromFile(char* filename) {
+Rect getTrackingZoneFromFile(string filename) {
 
-    std::ifstream infile(filename);
+    std::ifstream infile(filename.c_str());
     int x, y, w, h;
     infile >> w >> h >> x >> y;
     Rect zone;
