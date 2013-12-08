@@ -56,6 +56,7 @@ void processImages(char* firstFrameFilename);
 int testCamShift();
 Rect getTrackingZoneFromFile(char* filename);
 void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
+string getImageFilename(string prefix, int count, string suffix);
 
 int histogramEqua();
 void MatchingMethod(int, void*);
@@ -250,32 +251,24 @@ int testCamShift()
 
 
     string fn =  IMG_FILENAME;
-    frame = imread(fn);
 
     int count=3700;
 
     string prefix, suffix;
     getSuffixAndPrefix(fn, suffix, prefix);
 
-    stringstream ss;
-    ss << count;
-    string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
-
+    string nextFrameFilename;
 
     for(;;)
     {
 
-
+        nextFrameFilename = getImageFilename(prefix, count, suffix);
         frame = imread(nextFrameFilename);
+
         count++;
         if(frame.empty()) {
             count = 3700;
-        }
-
-        stringstream ss;
-        ss << count;
-        nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
-        if(count == 3700) {
+            nextFrameFilename = getImageFilename(prefix, count, suffix);
             frame = imread(nextFrameFilename);
         }
 
@@ -386,6 +379,13 @@ void getSuffixAndPrefix(string fn, string & suffix, string & prefix) {
     suffix = fn.substr(index2);
 }
 
+
+string getImageFilename(string prefix, int count, string suffix) {
+    stringstream ss;
+    ss << count;
+    string filename = prefix + "W_" + ss.str() + "R" + suffix;
+    return filename;
+}
 
 
 /**
