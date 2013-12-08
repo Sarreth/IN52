@@ -250,14 +250,9 @@ int testCamShift()
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
 
 
-    string fn =  IMG_FILENAME;
-
+    string fn =  IMG_FILENAME, prefix, suffix, nextFrameFilename;
     int count=3700;
-
-    string prefix, suffix;
     getSuffixAndPrefix(fn, suffix, prefix);
-
-    string nextFrameFilename;
 
     for(;;)
     {
@@ -318,9 +313,11 @@ int testCamShift()
             RotatedRect trackBox = CamShift(backproj, trackWindow,
                                             TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1 ));
 
+
             if( backprojMode )
                 cvtColor( backproj, image, CV_GRAY2BGR );
             ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
+            rectangle(image, trackBox.boundingRect(),  Scalar(0,0,255), 3, CV_AA );
 
         }
 
