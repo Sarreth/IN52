@@ -13,16 +13,17 @@
 #include "opencv2/video/background_segm.hpp"
 #include "opencv2/video/video.hpp"
 
+
 #include <fstream>
+
 
 #include "histogram.h"
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
-#define IMG_FILENAME "E:/DropBox/UTBM/IN52/imgD/W_3700R.tif"
-#define SELECTION_FILE "E:/DropBox/UTBM/IN52/selection.txt"
+#define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
+#define SELECTION_FILE "/home/audric/IN52/selection.txt"
 #define REF_FILENAME "E:/DropBox/UTBM/IN52/ref.tif"
-#define RESIZE_VAL 4
 
 
 using namespace cv;
@@ -42,50 +43,58 @@ int vmin = 100, vmax = 256, smin = 75;
 
 /* Matching Methode */
 Mat img; Mat templ; Mat result;
-Mat imgOri;
 string image_window = "Source Image";
 
 int match_method=3;
 int max_Trackbar = 5;
 /*---------------------*/
 
+Mat fgMaskMOG;
+Mat fgMaskMOG2;
+Ptr<BackgroundSubtractorMOG> pMOG;
+Ptr<BackgroundSubtractorMOG2> pMOG2;
+IplConvKernel *kernel;
+int keyboard;
 
 void processImages(char* firstFrameFilename);
 int testCamShift();
-Rect getTrackingZoneFromFile(char* filename);
+Rect getTrackingZoneFromFile(string filename);
 
 int histogramEqua();
 void MatchingMethod(int, void*);
 int templateMatching();
-Mat DFF(string path);
 
 
 int main()
 {
+    pMOG = new BackgroundSubtractorMOG();
+    pMOG2 = new BackgroundSubtractorMOG2();
+
+
     selection = getTrackingZoneFromFile(SELECTION_FILE);
     cout << "tracking from: " << selection << endl << endl;
 
-//    testCamShift();
+    testCamShift();
 
-    templateMatching();
+//    templateMatching();
 //    histogramEqua();
 //    testCamShift();
 
 
+//    processImages("IMG_FILENAME");
     destroyAllWindows();
     return EXIT_SUCCESS;
 }
 
 int templateMatching()
 {
-    string fn(IMG_FILENAME);
-    imgOri = imread( fn, 1 );
+    string fn("IMG_FILENAME") ;
 
-    templ = DFF(REF_FILENAME);
-    img = DFF(IMG_FILENAME);
+    img = imread( fn, 1 );
+    templ = imread(REF_FILENAME, 1 );
 
     /// Create windows
-    namedWindow( image_window, CV_WINDOW_AUTOSIZE );
+    namedWindow( image_window,  CV_WINDOW_AUTOSIZE | CV_GUI_NORMAL  );
 
     int count=3700;
     size_t index = fn.find_last_of("/");
@@ -102,107 +111,53 @@ int templateMatching()
     for(;;)
     {
         MatchingMethod(0,0);
-        imgOri = imread(nextFrameFilename);
-        if(imgOri.empty())
+        img = imread(nextFrameFilename);
+        if(img.empty())
             break;
-
-        img = DFF(nextFrameFilename);
         count++;
         stringstream ss;
         ss << count;
         nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
-        char c = (char)waitKey(5);
-        if( c == 27 )
-            break;
+        waitKey(10);
     }
     waitKey(0);
     return 0;
 }
 
-Mat DFF(string path)
-{
-    Mat I = imread(path, CV_LOAD_IMAGE_GRAYSCALE);
-    Size size = I.size();
-    size.height /= RESIZE_VAL;
-    size.width /= RESIZE_VAL;
-    resize(I,I,size);
-
-    Mat padded;                            //expand input image to optimal size
-    int m = getOptimalDFTSize( I.rows );
-    int n = getOptimalDFTSize( I.cols ); // on the border add zero values
-    copyMakeBorder(I, padded, 0, m - I.rows, 0, n - I.cols, BORDER_CONSTANT, Scalar::all(0));
-
-    Mat planes[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
-    Mat complexI;
-    merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
-
-    dft(complexI, complexI);            // this way the result may fit in the source matrix
-
-    // compute the magnitude and switch to logarithmic scale
-    // => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
-    split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
-    magnitude(planes[0], planes[1], planes[0]);// planes[0] = magnitude
-    Mat magI = planes[0];
-
-    magI += Scalar::all(1);                    // switch to logarithmic scale
-    log(magI, magI);
-
-    // crop the spectrum, if it has an odd number of rows or columns
-    magI = magI(Rect(0, 0, magI.cols & -2, magI.rows & -2));
-
-    // rearrange the quadrants of Fourier image  so that the origin is at the image center
-    int cx = magI.cols/2;
-    int cy = magI.rows/2;
-
-    Mat q0(magI, Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
-    Mat q1(magI, Rect(cx, 0, cx, cy));  // Top-Right
-    Mat q2(magI, Rect(0, cy, cx, cy));  // Bottom-Left
-    Mat q3(magI, Rect(cx, cy, cx, cy)); // Bottom-Right
-
-    Mat tmp;                           // swap quadrants (Top-Left with Bottom-Right)
-    q0.copyTo(tmp);
-    q3.copyTo(q0);
-    tmp.copyTo(q3);
-
-    q1.copyTo(tmp);                    // swap quadrant (Top-Right with Bottom-Left)
-    q2.copyTo(q1);
-    tmp.copyTo(q2);
-
-    normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
-                                            // viewable image form (float between values 0 and 1).
-    return I;
-}
-
 void MatchingMethod( int, void* )
 {
-    /// Create the result matrix
-     int result_cols =  img.cols - templ.cols + 1;
-     int result_rows = img.rows - templ.rows + 1;
+  /// Source image to display
+  Mat img_display;
+  img.copyTo( img_display );
 
-     result.create( result_cols, result_rows, CV_32FC1 );
+  /// Create the result matrix
+  int result_cols =  img.cols - templ.cols + 1;
+  int result_rows = img.rows - templ.rows + 1;
 
-     /// Do the Matching and Normalize
-     matchTemplate( img, templ, result, match_method );
-     normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+  result.create( result_cols, result_rows, CV_32FC1 );
 
-     /// Localizing the best match with minMaxLoc
-     double minVal; double maxVal; Point minLoc; Point maxLoc;
-     Point matchLoc;
+  /// Do the Matching and Normalize
+  matchTemplate( img, templ, result, match_method );
+  normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
 
-     minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+  /// Localizing the best match with minMaxLoc
+  double minVal; double maxVal; Point minLoc; Point maxLoc;
+  Point matchLoc;
 
-     /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
-     if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
-       { matchLoc = minLoc; }
-     else
-       { matchLoc = maxLoc; }
+  minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
 
-     /// Show me what you got
-     rectangle( imgOri, matchLoc*RESIZE_VAL, Point( matchLoc.x*RESIZE_VAL + templ.cols*RESIZE_VAL , matchLoc.y*RESIZE_VAL + templ.rows*RESIZE_VAL ), Scalar(0,0,255), 2, 8, 0 );
+  /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+  if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+    { matchLoc = minLoc; }
+  else
+    { matchLoc = maxLoc; }
 
-     imshow( image_window, imgOri );
+  /// Show me what you got
+  rectangle( img_display, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar::all(0), 2, 8, 0 );
 
-     return;
+  imshow( image_window, img_display );
+
+  return;
 }
 
 int histogramEqua()
@@ -229,6 +184,8 @@ int histogramEqua()
     return 0;
 }
 
+
+
 int testCamShift()
 {
     Rect trackWindow;
@@ -236,7 +193,7 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-    namedWindow( "CamShift Demo", 0 );
+    namedWindow( "CamShift Demo",  CV_WINDOW_AUTOSIZE | CV_GUI_NORMAL  );
 
     /*createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
     createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
@@ -247,6 +204,8 @@ int testCamShift()
     bool paused = false;
 
     string fn =  IMG_FILENAME;
+
+
     frame = imread(fn);
 
     int count=3700;
@@ -262,7 +221,7 @@ int testCamShift()
     string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
 
 
-    for(;;)
+    while(true)
     {
 
         if( !paused )
@@ -351,7 +310,7 @@ int testCamShift()
         imshow( "CamShift Demo", image );
 
         char c = (char)waitKey(10);
-        if( c == 27 )
+        if( c == 27 || c=='q')
             break;
         switch(c)
         {
@@ -374,9 +333,68 @@ int testCamShift()
 }
 
 
-void processImages(char* fistFrameFilename)
-{
+void processImages(char* fistFrameFilename) {
+    //Traitement de l'image avec la méthode BgSubtractorMOG et bgSubtractorMOG2
+    int count=3701;
+    Mat frame;
+    frame = imread(fistFrameFilename);
 
+    string fn(fistFrameFilename);
+
+    while( (char)keyboard != 'q' && (char)keyboard != 27 )
+    {
+        //Operation MOG sur l'image
+        pMOG->operator()(frame, fgMaskMOG);
+        pMOG2->operator()(frame, fgMaskMOG2);
+
+        kernel = cvCreateStructuringElementEx(5, 5, 2, 2, CV_SHAPE_ELLIPSE);
+
+        IplImage* mask = new IplImage(fgMaskMOG2);
+        //Traitement de l'image pour eliminer des parasites
+        //si on erode avant de dilate, on voit surtout le feuillage des arbres et la voiture disparait
+
+        cvDilate(mask, mask, kernel, 2);
+        cvErode(mask, mask, kernel, 2);
+
+        //avec un erode de 10 on supprime quasiment entièrement la voiture et seul le ciel et les arbres apparaissent
+        //peut-être utilisable pour connaitre position des parasites et refaire une soustraction
+        //cvErode(mask, mask, kernel, 10);
+
+        //Recuperation du prefix et suffix du fichier
+        size_t index = fn.find_last_of("/");
+        if(index == string::npos)
+            index = fn.find_last_of("\\");
+
+        size_t index2 = fn.find_last_of(".");
+        string prefix = fn.substr(0,index+1);
+        string suffix = fn.substr(index2);
+
+
+        rectangle(frame, Point(10, 2), Point(100,20),
+            Scalar(255,255,255), -1);
+
+        //Affichage du resultat
+        imshow("Frame", frame);
+        imshow("FG Mask MOG", fgMaskMOG);
+//        imshow("FG Mask MOG 2", fgMaskMOG2);
+        cvShowImage("GeckoGeek Mask", mask);
+
+        keyboard = waitKey( 30 );
+
+        //Recuperation nom de la prochaine image
+        stringstream ss;
+        ss << count;
+        string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
+        count++;
+
+        frame = imread(nextFrameFilename);
+        if(!frame.data)
+        {
+            cerr << "Unable to open image frame: " << nextFrameFilename << endl;
+            exit(EXIT_FAILURE);
+        }
+        fn.assign(nextFrameFilename);
+    }
 }
 
 
@@ -385,9 +403,9 @@ void processImages(char* fistFrameFilename)
  * @param filename
  * @return
  */
-Rect getTrackingZoneFromFile(char* filename) {
+Rect getTrackingZoneFromFile(string filename) {
 
-    std::ifstream infile(filename);
+    std::ifstream infile(filename.c_str());
     int x, y, w, h;
     infile >> w >> h >> x >> y;
     Rect zone;
