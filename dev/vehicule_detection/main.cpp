@@ -20,7 +20,12 @@
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
+/* ATTENTION POUR NE PAS CONTINUER A DEVOIR MODIFIER LES IMAGES A CHQUE FOIS, voila la marche à suivre :
+créer un nouveau fichier hpp s'appelant relative_data.hpp ET DECOCHER "add to source control : git"
+ensuite, copier coller vos define propre à vous uniquement (y en a 3 je crois) et avant de faire un commit
+ajouter relative_data.hpp à votre gitignore. Normalement, il le commitra pas, mais on aura chacun nos paramètres comme l faut
 
+*/
 
 #define WINDOW_NAME "Projet d'IN54"
 #define RESIZE_VAL 4
@@ -266,10 +271,7 @@ int testCamShift()
             frame = imread(nextFrameFilename);
         }
 
-
-
         frame.copyTo(image);
-
 
         cvtColor(image, hsv, CV_BGR2HSV);
 
