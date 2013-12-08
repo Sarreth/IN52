@@ -317,13 +317,6 @@ int testCamShift()
             backproj &= mask;
             RotatedRect trackBox = CamShift(backproj, trackWindow,
                                             TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1 ));
-            if( trackWindow.area() <= 1 )
-            {
-                int cols = backproj.cols, rows = backproj.rows, r = (MIN(cols, rows) + 5)/6;
-                trackWindow = Rect(trackWindow.x - r, trackWindow.y - r,
-                                   trackWindow.x + r, trackWindow.y + r) &
-                        Rect(0, 0, cols, rows);
-            }
 
             if( backprojMode )
                 cvtColor( backproj, image, CV_GRAY2BGR );
