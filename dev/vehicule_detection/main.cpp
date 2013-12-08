@@ -294,7 +294,7 @@ int testCamShift()
 
         imshow( WINDOW_NAME, image );
 
-        char c = (char)waitKey(10000);
+        char c = (char)waitKey(10);
         if( c == 27 || c=='q')
             break;
         switch(c)
