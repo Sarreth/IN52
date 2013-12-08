@@ -55,6 +55,7 @@ int max_Trackbar = 5;
 void processImages(char* firstFrameFilename);
 int testCamShift();
 Rect getTrackingZoneFromFile(char* filename);
+void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
 
 int histogramEqua();
 void MatchingMethod(int, void*);
@@ -252,13 +253,10 @@ int testCamShift()
     frame = imread(fn);
 
     int count=3700;
-    size_t index = fn.find_last_of("/");
-    if(index == string::npos)
-        index = fn.find_last_of("\\");
 
-    size_t index2 = fn.find_last_of(".");
-    string prefix = fn.substr(0,index+1);
-    string suffix = fn.substr(index2);
+    string prefix, suffix;
+    getSuffixAndPrefix(fn, suffix, prefix);
+
     stringstream ss;
     ss << count;
     string nextFrameFilename = prefix + "W_" + ss.str() + "R" + suffix;
@@ -376,6 +374,18 @@ void processImages(char* fistFrameFilename)
 {
 
 }
+
+
+void getSuffixAndPrefix(string fn, string & suffix, string & prefix) {
+    size_t index = fn.find_last_of("/");
+    if(index == string::npos)
+        index = fn.find_last_of("\\");
+
+    size_t index2 = fn.find_last_of(".");
+    prefix = fn.substr(0,index+1);
+    suffix = fn.substr(index2);
+}
+
 
 
 /**
