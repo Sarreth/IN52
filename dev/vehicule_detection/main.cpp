@@ -285,13 +285,6 @@ int testCamShift()
         }
 
 
-
-        if( selectObject && selection.width > 0 && selection.height > 0 )
-        {
-            Mat roi(image, selection);
-            bitwise_not(roi, roi);
-        }
-
         imshow( WINDOW_NAME, image );
 
         char c = (char)waitKey(10);
