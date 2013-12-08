@@ -22,6 +22,8 @@
 #define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
 #define SELECTION_FILE "/home/audric/IN52/selection.txt"
 #define REF_FILENAME "/home/audric/IN52/ref.tif"
+
+#define WINDOW_NAME "Projet d'IN54"
 #define RESIZE_VAL 4
 
 
@@ -236,7 +238,7 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-    namedWindow( "CamShift Demo", CV_WINDOW_AUTOSIZE );
+    namedWindow( WINDOW_NAME, CV_WINDOW_AUTOSIZE );
 
     /*createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
     createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
@@ -348,7 +350,7 @@ int testCamShift()
             bitwise_not(roi, roi);
         }
 
-        imshow( "CamShift Demo", image );
+        imshow( WINDOW_NAME, image );
 
         char c = (char)waitKey(10);
         if( c == 27 || c=='q')
