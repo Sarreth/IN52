@@ -19,9 +19,9 @@
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
-#define IMG_FILENAME "E:/DropBox/UTBM/IN52/imgD/W_3700R.tif"
-#define SELECTION_FILE "E:/DropBox/UTBM/IN52/selection.txt"
-#define REF_FILENAME "E:/DropBox/UTBM/IN52/ref.tif"
+#define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
+#define SELECTION_FILE "/home/audric/IN52/selection.txt"
+#define REF_FILENAME "/home/audric/IN52/ref.tif"
 #define RESIZE_VAL 4
 
 
@@ -65,9 +65,9 @@ int main()
     selection = getTrackingZoneFromFile(SELECTION_FILE);
     cout << "tracking from: " << selection << endl << endl;
 
-//    testCamShift();
+    testCamShift();
 
-    templateMatching();
+//    templateMatching();
 //    histogramEqua();
 //    testCamShift();
 
@@ -236,7 +236,7 @@ int testCamShift()
     float hranges[] = {0,180};
     const float* phranges = hranges;
 
-    namedWindow( "CamShift Demo", 0 );
+    namedWindow( "CamShift Demo", CV_WINDOW_AUTOSIZE );
 
     /*createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
     createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
