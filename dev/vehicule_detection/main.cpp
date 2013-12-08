@@ -1,3 +1,4 @@
+#include "relative_data.hpp"
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
@@ -19,9 +20,7 @@
 #include "colorhistogram.h"
 #include "objectFinder.h"
 
-#define IMG_FILENAME "/home/audric/ownCloud/Documents/UTBM/GI/GI05/IN54/Projet/A2013_ProjetIN5x_Data1/imgD/W_3700R.tif"
-#define SELECTION_FILE "/home/audric/IN52/selection.txt"
-#define REF_FILENAME "/home/audric/IN52/ref.tif"
+
 
 #define WINDOW_NAME "Projet d'IN54"
 #define RESIZE_VAL 4
