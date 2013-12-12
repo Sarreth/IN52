@@ -14,7 +14,8 @@ void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
 string getImageFilename(string prefix, int count, string suffix);
 
 int histogramEqua();
-void MatchingMethod(int, void*);
+int MatchingMethod(int, void*, string, Mat&);
+Mat DFF(string path);
 int templateMatching();
 
 
