@@ -42,7 +42,7 @@ bool selectObject = false;
 int trackObject = 0;
 bool showHist = true;
 Point origin;
-Rect selection;
+//Rect selection;
 
 
 /*---------------------*/
@@ -69,9 +69,9 @@ int main()
     pMOG = new BackgroundSubtractorMOG();
     pMOG2 = new BackgroundSubtractorMOG2();
 
-    selection = getTrackingZoneFromFile(SELECTION_FILE);
+    Rect selection = getTrackingZoneFromFile(SELECTION_FILE);
 
-    testCamShift();
+    testCamShift(selection);
 
 //    templateMatching();
 //    histogramEqua();
@@ -185,7 +185,7 @@ int histogramEqua()
 
 
 
-int testCamShift()
+int testCamShift(Rect selection)
 {
     int vmin = 100, vmax = 256, smin = 75;
     Rect trackWindow, rectCamshift;

@@ -8,7 +8,7 @@ using namespace std;
 
 
 void processImages(char* firstFrameFilename);
-int testCamShift();
+int testCamShift(Rect selection);
 Rect getTrackingZoneFromFile(string filename);
 void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
 string getImageFilename(string prefix, int count, string suffix);
