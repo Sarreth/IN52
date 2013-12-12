@@ -35,14 +35,7 @@ ajouter relative_data.hpp à votre gitignore. Normalement, il le commitra pas, m
 using namespace cv;
 using namespace std;
 
-/* Pour le camShift */
-Mat image;
-bool backprojMode = false;
-bool selectObject = false;
-int trackObject = 0;
-bool showHist = true;
-Point origin;
-//Rect selection;
+
 
 
 /*---------------------*/
@@ -187,6 +180,11 @@ int histogramEqua()
 
 int testCamShift(Rect selection)
 {
+
+    Mat image;
+    bool backprojMode = false;
+    int trackObject = -1;
+
     int vmin = 100, vmax = 256, smin = 75;
     Rect trackWindow, rectCamshift;
     Mat subimage;
@@ -398,6 +396,5 @@ Rect getTrackingZoneFromFile(string filename) {
     zone.y = y;
     zone.width = w;
     zone.height = h;
-    trackObject = -1;
     return zone;
 }
