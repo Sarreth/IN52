@@ -25,12 +25,11 @@
 /* ATTENTION POUR NE PAS CONTINUER A DEVOIR MODIFIER LES IMAGES A CHQUE FOIS, voila la marche à suivre :
 créer un nouveau fichier hpp s'appelant relative_data.hpp ET DECOCHER "add to source control : git"
 ensuite, copier coller vos define propre à vous uniquement (y en a 3 je crois) et avant de faire un commit
-ajouter relative_data.hpp à votre gitignore. Normalement, il le commitra pas, mais on aura chacun nos paramètres comme l faut
+ajouter relative_data.hpp à votre gitignore. Normalement, il le commitra pas, mais on aura chacun nos paramètres comme il faut
 */
 
 #define WINDOW_NAME "Projet d'IN54"
 #define RESIZE_VAL 4
-
 
 
 using namespace cv;
@@ -48,7 +47,7 @@ Rect selection;
 
 /*---------------------*/
 
-/* Matching Methode */
+/* Matching Method */
 Mat img; Mat templ; Mat result;
 string image_window = "Source Image";
 
@@ -62,6 +61,8 @@ Ptr<BackgroundSubtractorMOG> pMOG;
 Ptr<BackgroundSubtractorMOG2> pMOG2;
 IplConvKernel *kernel;
 int keyboard;
+
+
 
 void processImages(char* firstFrameFilename);
 int testCamShift();
@@ -79,9 +80,7 @@ int main()
     pMOG = new BackgroundSubtractorMOG();
     pMOG2 = new BackgroundSubtractorMOG2();
 
-
     selection = getTrackingZoneFromFile(SELECTION_FILE);
-    cout << "tracking from: " << selection << endl << endl;
 
     testCamShift();
 
@@ -210,9 +209,9 @@ int testCamShift()
     namedWindow( WINDOW_NAME, CV_WINDOW_AUTOSIZE );
 
 
-    /*createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
-    createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
-    createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );*/
+    /*createTrackbar( "Vmin", WINDOW_NAME, &vmin, 256, 0 );
+    createTrackbar( "Vmax", WINDOW_NAME, &vmax, 256, 0 );
+    createTrackbar( "Smin", WINDOW_NAME, &smin, 256, 0 );*/
 
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
