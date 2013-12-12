@@ -200,7 +200,8 @@ int histogramEqua()
 int testCamShift()
 {
     int vmin = 100, vmax = 256, smin = 75;
-    Rect trackWindow;
+    Rect trackWindow, rectCamshift;
+    Mat subimage;
     int hsize = 16;
     float hranges[] = {0,180};
     const float* phranges = hranges;
@@ -279,13 +280,14 @@ int testCamShift()
 
             if( backprojMode )
                 cvtColor( backproj, image, CV_GRAY2BGR );
-            ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
-            rectangle(image, trackBox.boundingRect(),  Scalar(0,0,255), 3, CV_AA );
+            //ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
+           rectCamshift = trackBox.boundingRect();
+           rectangle(image, rectCamshift,  Scalar(0,0,255), 3, CV_AA );
 
         }
 
-
-        imshow( WINDOW_NAME, image );
+        subimage = image(rectCamshift);
+        imshow( WINDOW_NAME, subimage );
 
         char c = (char)waitKey(10);
         if( c == 27 || c=='q')
