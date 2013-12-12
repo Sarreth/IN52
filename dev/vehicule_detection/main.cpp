@@ -17,10 +17,10 @@
 
 #include <fstream>
 
-
 #include "histogram.h"
 #include "colorhistogram.h"
 #include "objectFinder.h"
+#include "main.hpp"
 
 /* ATTENTION POUR NE PAS CONTINUER A DEVOIR MODIFIER LES IMAGES A CHQUE FOIS, voila la marche à suivre :
 créer un nouveau fichier hpp s'appelant relative_data.hpp ET DECOCHER "add to source control : git"
@@ -62,17 +62,6 @@ Ptr<BackgroundSubtractorMOG2> pMOG2;
 IplConvKernel *kernel;
 int keyboard;
 
-
-
-void processImages(char* firstFrameFilename);
-int testCamShift();
-Rect getTrackingZoneFromFile(string filename);
-void getSuffixAndPrefix(string fn, string & suffix, string & prefix);
-string getImageFilename(string prefix, int count, string suffix);
-
-int histogramEqua();
-void MatchingMethod(int, void*);
-int templateMatching();
 
 
 int main()
