@@ -46,9 +46,9 @@ int main()
     //pMOG2 = new BackgroundSubtractorMOG2();
 
     Rect selection = getTrackingZoneFromFile(SELECTION_FILE);
-    testCamShift(selection);
+    //testCamShift(selection);
 
-    //templateMatching();
+    templateMatching();
     //    histogramEqua();
 
     //    processImages("IMG_FILENAME");
@@ -58,15 +58,19 @@ int main()
 
 int templateMatching()
 {
-    Mat img, imgOri;
+    Mat img, imgOri, subImage, plaque;
     string image_window = "Source Image";
+    string sub_window = "Sub Image";
 
     string fn(IMG_FILENAME);
     imgOri = imread( fn, 1 );
-    img = DFF(IMG_FILENAME);
-    Mat templ = DFF(REF_FILENAME);
+    img = DFF(IMG_FILENAME,RESIZE_VAL);
+    Mat templ = DFF(REF_FILENAME,RESIZE_VAL);
+    Mat templ_ima = imread(IMA_FILENAME,1);
+
     string prefix;
     string suffix;
+    namedWindow( sub_window, CV_WINDOW_AUTOSIZE );
 
     namedWindow( image_window, CV_WINDOW_AUTOSIZE );
     int count=3700;
@@ -74,11 +78,12 @@ int templateMatching()
     getSuffixAndPrefix(fn, suffix, prefix);
     string nextFrameFilename = getImageFilename(prefix, count, suffix);
 
-    while(MatchingMethod(0,0, nextFrameFilename, templ) == 0)
+    while(!(subImage = MatchingMethod(0,0, nextFrameFilename, templ,RESIZE_VAL)).empty())
     {
+        plaque = MatchingMethod(0,0, subImage, templ_ima,1);
         count++;
-
         nextFrameFilename = getImageFilename(prefix, count, suffix);
+        imshow( sub_window, plaque );
         char c = (char)waitKey(5);
         if( c == 27 )
             return 0;
@@ -86,12 +91,12 @@ int templateMatching()
     return 0;
 }
 
-Mat DFF(string path)
+Mat DFF(string path, int resizeVal)
 {
     Mat I = imread(path, CV_LOAD_IMAGE_GRAYSCALE);
     Size size = I.size();
-    size.height /= RESIZE_VAL;
-    size.width /= RESIZE_VAL;
+    size.height /= resizeVal;
+    size.width /= resizeVal;
     resize(I,I,size);
 
     Mat padded;                            //expand input image to optimal size
@@ -140,7 +145,63 @@ Mat DFF(string path)
     return I;
 }
 
-int MatchingMethod( int, void*, string path, Mat& templ)
+Mat DFF(Mat img, int resizeVal)
+{
+    Mat I;
+    cvtColor(img, I, CV_BGR2GRAY);
+    Size size = I.size();
+    size.height /= resizeVal;
+    size.width /= resizeVal;
+    resize(I,I,size);
+
+    Mat padded;                            //expand input image to optimal size
+    int m = getOptimalDFTSize( I.rows );
+    int n = getOptimalDFTSize( I.cols ); // on the border add zero values
+    copyMakeBorder(I, padded, 0, m - I.rows, 0, n - I.cols, BORDER_CONSTANT, Scalar::all(0));
+
+    Mat planes[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
+    Mat complexI;
+    merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
+
+    dft(complexI, complexI);            // this way the result may fit in the source matrix
+
+    // compute the magnitude and switch to logarithmic scale
+    // => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+    split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+    magnitude(planes[0], planes[1], planes[0]);// planes[0] = magnitude
+    Mat magI = planes[0];
+
+    magI += Scalar::all(1);                    // switch to logarithmic scale
+    log(magI, magI);
+
+    // crop the spectrum, if it has an odd number of rows or columns
+    magI = magI(Rect(0, 0, magI.cols & -2, magI.rows & -2));
+
+    // rearrange the quadrants of Fourier image  so that the origin is at the image center
+    int cx = magI.cols/2;
+    int cy = magI.rows/2;
+
+    Mat q0(magI, Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+    Mat q1(magI, Rect(cx, 0, cx, cy));  // Top-Right
+    Mat q2(magI, Rect(0, cy, cx, cy));  // Bottom-Left
+    Mat q3(magI, Rect(cx, cy, cx, cy)); // Bottom-Right
+
+    Mat tmp;                           // swap quadrants (Top-Left with Bottom-Right)
+    q0.copyTo(tmp);
+    q3.copyTo(q0);
+    tmp.copyTo(q3);
+
+    q1.copyTo(tmp);                    // swap quadrant (Top-Right with Bottom-Left)
+    q2.copyTo(q1);
+    tmp.copyTo(q2);
+
+    normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
+    // viewable image form (float between values 0 and 1).
+    return I;
+}
+
+
+Mat MatchingMethod( int, void*, string path, Mat& templ, int resizeVal)
 {
     int match_method=3;
     Mat imgOri, img;
@@ -149,8 +210,11 @@ int MatchingMethod( int, void*, string path, Mat& templ)
 
     imgOri = imread(path);
     if(imgOri.empty())
-        return -1;
-    img = DFF(path);
+    {
+        Mat empty;
+        return empty;
+    }
+    img = DFF(path,resizeVal);
 
     /// Create the result matrix
     int result_cols =  img.cols - templ.cols + 1;
@@ -175,11 +239,59 @@ int MatchingMethod( int, void*, string path, Mat& templ)
     { matchLoc = maxLoc; }
 
     /// Show me what you got
-    rectangle( imgOri, matchLoc*RESIZE_VAL, Point( matchLoc.x*RESIZE_VAL + templ.cols*RESIZE_VAL , matchLoc.y*RESIZE_VAL + templ.rows*RESIZE_VAL ), Scalar(0,0,255), 2, 8, 0 );
+    rectangle( imgOri, matchLoc*resizeVal, Point( matchLoc.x*resizeVal + templ.cols*resizeVal , matchLoc.y*resizeVal + templ.rows*resizeVal ), Scalar(0,0,255), 2, 8, 0 );
+    Rect trackRect(matchLoc*resizeVal, Point( matchLoc.x*resizeVal + templ.cols*resizeVal , matchLoc.y*resizeVal + templ.rows*resizeVal ));
+    Mat subImage = imgOri(trackRect);
+    //imshow( image_window, imgOri );
 
+    return subImage;
+}
+
+
+Mat MatchingMethod( int, void*, Mat imgOri, Mat& templOri, int resizeVal)
+{
+    int match_method=3;
+    Mat img(imgOri),templ(templOri);
+    string image_window = "Source Image";
+    Mat result;
+
+    if(imgOri.empty())
+    {
+        Mat empty;
+        return empty;
+    }
+
+    img = DFF(img,resizeVal);
+    templ = DFF(templ,resizeVal);
+    /// Create the result matrix
+    int result_cols =  img.cols - templ.cols + 1;
+    int result_rows = img.rows - templ.rows + 1;
+
+    result.create( result_cols, result_rows, CV_32FC1 );
+
+    /// Do the Matching and Normalize
+    matchTemplate( img, templ, result, match_method );
+    normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+
+    /// Localizing the best match with minMaxLoc
+    double minVal; double maxVal; Point minLoc; Point maxLoc;
+    Point matchLoc;
+
+    minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+
+    /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+    if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+    { matchLoc = minLoc; }
+    else
+    { matchLoc = maxLoc; }
+
+    /// Show me what you got
+    rectangle( imgOri, matchLoc*resizeVal, Point( matchLoc.x*resizeVal + templ.cols*resizeVal , matchLoc.y*resizeVal + templ.rows*resizeVal ), Scalar(0,0,255), 2, 8, 0 );
+    Rect trackRect(matchLoc*resizeVal, Point( matchLoc.x*resizeVal + templ.cols*resizeVal , matchLoc.y*resizeVal + templ.rows*resizeVal ));
+    Mat subImage = imgOri(trackRect);
     imshow( image_window, imgOri );
 
-    return 0;
+    return subImage;
 }
 
 int histogramEqua()
