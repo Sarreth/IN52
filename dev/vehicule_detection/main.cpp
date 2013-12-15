@@ -45,13 +45,13 @@ int main()
     //pMOG = new BackgroundSubtractorMOG();
     //pMOG2 = new BackgroundSubtractorMOG2();
 
-    //Rect selection = getTrackingZoneFromFile(SELECTION_FILE);
-    //testCamShift(selection);
+    Rect selection = getTrackingZoneFromFile(SELECTION_FILE);
+    testCamShift(selection);
 
-    templateMatching();
-//    histogramEqua();
+    //templateMatching();
+    //    histogramEqua();
 
-//    processImages("IMG_FILENAME");
+    //    processImages("IMG_FILENAME");
     destroyAllWindows();
     return EXIT_SUCCESS;
 }
@@ -68,23 +68,23 @@ int templateMatching()
     string prefix;
     string suffix;
 
-     namedWindow( image_window, CV_WINDOW_AUTOSIZE );
-     int count=3700;
+    namedWindow( image_window, CV_WINDOW_AUTOSIZE );
+    int count=3700;
 
-     getSuffixAndPrefix(fn, suffix, prefix);
-     string nextFrameFilename = getImageFilename(prefix, count, suffix);
+    getSuffixAndPrefix(fn, suffix, prefix);
+    string nextFrameFilename = getImageFilename(prefix, count, suffix);
 
-     while(MatchingMethod(0,0, nextFrameFilename, templ) == 0)
-     {
-         count++;
+    while(MatchingMethod(0,0, nextFrameFilename, templ) == 0)
+    {
+        count++;
 
-         nextFrameFilename = getImageFilename(prefix, count, suffix);
-         char c = (char)waitKey(5);
-         if( c == 27 )
-             return 0;
-     }
-     return 0;
- }
+        nextFrameFilename = getImageFilename(prefix, count, suffix);
+        char c = (char)waitKey(5);
+        if( c == 27 )
+            return 0;
+    }
+    return 0;
+}
 
 Mat DFF(string path)
 {
@@ -136,7 +136,7 @@ Mat DFF(string path)
     tmp.copyTo(q2);
 
     normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
-                                            // viewable image form (float between values 0 and 1).
+    // viewable image form (float between values 0 and 1).
     return I;
 }
 
@@ -153,33 +153,33 @@ int MatchingMethod( int, void*, string path, Mat& templ)
     img = DFF(path);
 
     /// Create the result matrix
-     int result_cols =  img.cols - templ.cols + 1;
-     int result_rows = img.rows - templ.rows + 1;
+    int result_cols =  img.cols - templ.cols + 1;
+    int result_rows = img.rows - templ.rows + 1;
 
-     result.create( result_cols, result_rows, CV_32FC1 );
+    result.create( result_cols, result_rows, CV_32FC1 );
 
-     /// Do the Matching and Normalize
-     matchTemplate( img, templ, result, match_method );
-     normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+    /// Do the Matching and Normalize
+    matchTemplate( img, templ, result, match_method );
+    normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
 
-     /// Localizing the best match with minMaxLoc
-     double minVal; double maxVal; Point minLoc; Point maxLoc;
-     Point matchLoc;
+    /// Localizing the best match with minMaxLoc
+    double minVal; double maxVal; Point minLoc; Point maxLoc;
+    Point matchLoc;
 
-     minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+    minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
 
-     /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
-     if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
-       { matchLoc = minLoc; }
-     else
-       { matchLoc = maxLoc; }
+    /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+    if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+    { matchLoc = minLoc; }
+    else
+    { matchLoc = maxLoc; }
 
-     /// Show me what you got
-     rectangle( imgOri, matchLoc*RESIZE_VAL, Point( matchLoc.x*RESIZE_VAL + templ.cols*RESIZE_VAL , matchLoc.y*RESIZE_VAL + templ.rows*RESIZE_VAL ), Scalar(0,0,255), 2, 8, 0 );
+    /// Show me what you got
+    rectangle( imgOri, matchLoc*RESIZE_VAL, Point( matchLoc.x*RESIZE_VAL + templ.cols*RESIZE_VAL , matchLoc.y*RESIZE_VAL + templ.rows*RESIZE_VAL ), Scalar(0,0,255), 2, 8, 0 );
 
-     imshow( image_window, imgOri );
+    imshow( image_window, imgOri );
 
-     return 0;
+    return 0;
 }
 
 int histogramEqua()
@@ -216,6 +216,8 @@ int testCamShift(Rect selection)
 
     Rect trackWindow, rectCamshift;
 
+    float ratioCar = ((float)selection.width) /selection.height;
+
     bool backprojMode = false;
     int vmin = 100, vmax = 256, smin = 75, hsize = 16, count=3700, trackObject = -1;
 
@@ -232,6 +234,8 @@ int testCamShift(Rect selection)
 
 
     getSuffixAndPrefix(IMG_FILENAME, suffix, prefix);
+
+    cout << " ratioCar :" << ratioCar << endl;
 
     while(true)
     {
@@ -293,8 +297,14 @@ int testCamShift(Rect selection)
             if( backprojMode )
                 cvtColor( backproj, image, CV_GRAY2BGR );
             //ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
-           rectCamshift = trackBox.boundingRect();
-           rectangle(image, rectCamshift,  Scalar(0,0,255), 3, CV_AA );
+            rectCamshift = trackBox.boundingRect();
+
+            float currentRatio =  ( ((float)rectCamshift.width)/rectCamshift.height );
+            cout << " currentRatio :" <<currentRatio<< endl;
+            rectCamshift.height *= (currentRatio/ratioCar);
+
+
+            rectangle(image, rectCamshift,  Scalar(0,0,255), 3, CV_AA );
 
         }
 
